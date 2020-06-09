@@ -37,7 +37,7 @@ locals {
     addc_secondstatic   = "10.10.0.5"
     addcsitename        = "Default-First-Site-Name"
     grp_tags            = "ADDC"
-    primaryaddcscript   = "https://location/"
+    primaryaddcscript   = "https://raw.githubusercontent.com/bcosden/tf-create-addc/master/addcpromotescript.ps1"
     scriptfilename      = "addcpromotescript.ps1"
 }
 
@@ -55,7 +55,6 @@ resource "azurerm_resource_group" "myterraformgroup" {
 resource "azurerm_virtual_network" "myterraformnetwork" {
     name                = local.vnet_name
     address_space       = [local.vnet_addrspace]
-    dns_servers         = [local.addc_primarystatic, local.addc_secondstatic]
     location            = var.location
     resource_group_name = azurerm_resource_group.myterraformgroup.name
 
@@ -302,7 +301,7 @@ resource "azurerm_bastion_host" "addchost" {
 }
 
 resource "azurerm_virtual_machine_extension" "promoteaddc" {
-  name                  = "${local.vm_prefix}01-VmExtension"
+  name                  = "VMExtension-ADDC01"
   virtual_machine_id    = azurerm_windows_virtual_machine.myterraformvm1.id
   publisher             = "Microsoft.Compute"
   type                  = "CustomScriptExtension"
@@ -315,7 +314,7 @@ resource "azurerm_virtual_machine_extension" "promoteaddc" {
   # CustomVMExtension Documetnation: https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
   settings = <<SETTINGS
     {
-        "fileUris": ["${local.primaryaddcscript}${local.scriptfilename}"]
+        "fileUris": ["${local.primaryaddcscript}"]
     }
 SETTINGS
   protected_settings = <<PROTECTED_SETTINGS
