@@ -46,10 +46,6 @@ Try
     #Install ADDS
     Install-windowsfeature AD-domain-services -IncludeManagementTools
     Write-Log 'Install ADDS'
-
-    $vmuser = "azureuser"
-    $vmpassword = "MyP@ssword01"
-    $addcdomain = "addcdomain.com"
     
     #Format the user and password into domain style and as a credential
     $domainval = $addcdomain.Split("{.}")[0]
