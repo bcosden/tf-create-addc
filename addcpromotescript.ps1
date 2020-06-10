@@ -13,8 +13,6 @@ param(
     $addcdomain
 )
 
-Write-Log 'addcdomain: $addcdomain'
-
 filter Timestamp {"$(Get-Date -Format o): $_"}
 
 function
@@ -27,7 +25,7 @@ Try
 {
     #Assign RAW disk and add drive letter
     $addisk = Get-Disk -Number 2
-    Write-Log 'Get-Disk: $addisk'
+    Write-Log 'Get-Disk'
 
     Initialize-Disk -FriendlyName $addisk.FriendlyName -PartitionStyle MBR -PassThru
     Write-Log 'Initialize Disk'
