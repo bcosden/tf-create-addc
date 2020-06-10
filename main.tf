@@ -39,6 +39,8 @@ locals {
     grp_tags            = "ADDC"
     primaryaddcscript   = "https://raw.githubusercontent.com/bcosden/tf-create-addc/master/addcpromotescript.ps1"
     scriptfilename      = "addcpromotescript.ps1"
+    localpassword       = var.vmpassword
+    localdomain         = var.addcdomain
 }
 
 # Create a resource group if it doesn’t exist
@@ -305,7 +307,7 @@ resource "azurerm_virtual_machine_extension" "promoteaddc" {
   virtual_machine_id    = azurerm_windows_virtual_machine.myterraformvm1.id
   publisher             = "Microsoft.Compute"
   type                  = "CustomScriptExtension"
-  type_handler_version  = "1.9"
+  type_handler_version  = "1.10"
   depends_on            = [azurerm_windows_virtual_machine.myterraformvm1, azurerm_virtual_machine_data_disk_attachment.attachdatavm1]
   tags                  = {
         environment = local.grp_tags
@@ -319,7 +321,7 @@ resource "azurerm_virtual_machine_extension" "promoteaddc" {
 SETTINGS
   protected_settings = <<PROTECTED_SETTINGS
     {
-        "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File ${local.scriptfilename} ${local.vm_username} ${var.vmpassword} ${var.domain} ${local.subnet_storage} ${local.addcsitename}"
+        "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ${local.scriptfilename} ${local.localpassword} ${local.localdomain}"
     }
   PROTECTED_SETTINGS
 }

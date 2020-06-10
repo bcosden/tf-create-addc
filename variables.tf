@@ -11,7 +11,7 @@ variable "vmpassword" {
   type		    = string
   description	= "Enter the password to login to the Virtual Machine"
 }
-variable "domain" {
+variable "addcdomain" {
   type		    = string
   description	= "Enter the Domain Name for the ADDC"
 }

@@ -8,33 +8,44 @@
 param(
     [string]
     [ValidateNotNullOrEmpty()]
-    $vm_username,
-    [ValidateNotNullOrEmpty()]
     $vmpassword,
     [ValidateNotNullOrEmpty()]
-    $domain,
-    [ValidateNotNullOrEmpty()]
-    $subnet_storage,
-    [ValidateNotNullOrEmpty()]
-    $addcsitename
+    $addcdomain
 )
 
-#Assign RAW disk and add drive letter
-$addisk = Get-Disk -Number 2
+Write-Log 'addcdomain: $addcdomain'
 
-Set-Content -Path 'C:\file.txt' -Value $addisk
-Set-Content -Path 'C:\file2.txt' -Value $error
+filter Timestamp {"$(Get-Date -Format o): $_"}
 
-Initialize-Disk -FriendlyName $addisk.FriendlyName -PartitionStyle MBR -PassThru
+function
+Write-Log($message) {
+    $msg = $message | Timestamp
+    Write-Output $msg
+}
 
-New-Partition -DiskNumber $addisk.Number -AssignDriveLetter -UseMaximumSize
+Try
+{
+    #Assign RAW disk and add drive letter
+    $addisk = Get-Disk -Number 2
+    Write-Log 'Get-Disk: $addisk'
 
-Format-Volume -DriveLetter F -FileSystem NTFS -NewFileSystemLabel “ADDCDATA” -Confirm:$false
+    Initialize-Disk -FriendlyName $addisk.FriendlyName -PartitionStyle MBR -PassThru
+    Write-Log 'Initialize Disk'
 
-#Install ADDS
-Install-windowsfeature AD-domain-services -IncludeManagementTools
+    New-Partition -DiskNumber $addisk.Number -AssignDriveLetter -UseMaximumSize
+    Write-Log 'Parition Disk'
 
-#Create Primary ADDC
-Install-ADDSForest -CreateDnsDelegation:$false -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $domain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
+    Format-Volume -DriveLetter F -FileSystem NTFS -NewFileSystemLabel 'ADDCDATA' -Confirm:$false
+    Write-Log 'Format Disk'
 
-Restart-Computer -Force
+    #Install ADDS
+    Install-windowsfeature AD-domain-services -IncludeManagementTools
+    Write-Log 'Install ADDS'
+
+    #Create Primary ADDC
+    Install-ADDSForest -CreateDnsDelegation:$false -DatabasePath 'F:\NTDS' -LogPath 'F:\NTDS' -SysvolPath 'F:\SYSVOL' -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -Force:$true
+    Write-Log 'Create Forest'
+}
+catch {
+    Write-Error $_
+}
