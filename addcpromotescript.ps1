@@ -47,10 +47,15 @@ Try
     Install-windowsfeature AD-domain-services -IncludeManagementTools
     Write-Log 'Install ADDS'
 
-    $domainuser = $vmuser + "@" + $addcdomain
+    #Format the user and password into domain style and as a credential
+    $domainval = $addcdomain.Split("{.}")[0]
+    $domainval = $domainval.ToUpper() 
+    $domainuser = $domainval + "\" + $vmuser
+    $pword = ConvertTo-SecureString -String $vmpassword -AsPlainText -Force
+    $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, $pword
 
     #Create Secondary ADDC
-    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, (ConvertTo-SecureString -AsPlainText $vmpassword -Force)) -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
+    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
     Write-Log 'Create Forest'
 
     New-ADReplicationSubnet -Name $subnet_addc -Site $defaultsitename
