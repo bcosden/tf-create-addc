@@ -48,6 +48,7 @@ Try
     Write-Log 'Install ADDS'
 
     $domainuser = $vmuser + "@" + $addcdomain
+    Write-Log $domainuser
 
     #Create Secondary ADDC
     Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, (ConvertTo-SecureString -String $vmpassword -AsPlainText -Force)) -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
