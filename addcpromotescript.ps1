@@ -8,9 +8,16 @@
 param(
     [string]
     [ValidateNotNullOrEmpty()]
+    $vmuser,
+    [ValidateNotNullOrEmpty()]
     $vmpassword,
     [ValidateNotNullOrEmpty()]
-    $addcdomain
+    $addcdomain,
+    [ValidateNotNullOrEmpty()]
+    $subnet_addc,
+    [ValidateNotNullOrEmpty()]
+    $defaultsitename
+
 )
 
 filter Timestamp {"$(Get-Date -Format o): $_"}
@@ -41,8 +48,13 @@ Try
     Write-Log 'Install ADDS'
 
     #Create Primary ADDC
-    Install-ADDSForest -CreateDnsDelegation:$false -DatabasePath 'F:\NTDS' -LogPath 'F:\NTDS' -SysvolPath 'F:\SYSVOL' -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -Force:$true
+    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $vmuser, (ConvertTo-SecureString -String $vmpassword -AsPlainText -Force)) -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
     Write-Log 'Create Forest'
+
+    New-ADReplicationSubnet -Name $subnet_addc -Site $defaultsitename
+    Write-Log 'Create Default Site Name'
+
+    Restart-Computer -Force
 }
 catch {
     Write-Error $_

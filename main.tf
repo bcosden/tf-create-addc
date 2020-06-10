@@ -37,7 +37,7 @@ locals {
     addc_secondstatic   = "10.10.0.5"
     addcsitename        = "Default-First-Site-Name"
     grp_tags            = "ADDC"
-    primaryaddcscript   = "https://raw.githubusercontent.com/bcosden/tf-create-addc/master/addcpromotescript.ps1"
+    secondaddcscript   = "https://raw.githubusercontent.com/bcosden/tf-create-addc/master/addcpromotescript.ps1"
     scriptfilename      = "addcpromotescript.ps1"
     localpassword       = var.vmpassword
     localdomain         = var.addcdomain
@@ -57,6 +57,7 @@ resource "azurerm_resource_group" "myterraformgroup" {
 resource "azurerm_virtual_network" "myterraformnetwork" {
     name                = local.vnet_name
     address_space       = [local.vnet_addrspace]
+    dns_servers         = ["${local.addc_primarystatic}", "${local.addc_secondstatic}"]
     location            = var.location
     resource_group_name = azurerm_resource_group.myterraformgroup.name
 
@@ -316,12 +317,36 @@ resource "azurerm_virtual_machine_extension" "promoteaddc" {
   # CustomVMExtension Documetnation: https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
   settings = <<SETTINGS
     {
-        "fileUris": ["${local.primaryaddcscript}"]
+
     }
 SETTINGS
   protected_settings = <<PROTECTED_SETTINGS
     {
-        "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ${local.scriptfilename} ${local.localpassword} ${local.localdomain}"
+        "commandToExecute": "powershell Initialize-Disk -FriendlyName (Get-Disk -Number 2).FriendlyName -PartitionStyle MBR -PassThru; powershell New-Partition -DiskNumber (Get-Disk -Number 2).DiskNumber -AssignDriveLetter -UseMaximumSize; powershell Format-Volume -DriveLetter F -FileSystem NTFS -NewFileSystemLabel 'ADDCDATA' -Confirm:0; powershell Install-windowsfeature AD-domain-services -IncludeManagementTools; powershell Import-Module 'Microsoft.PowerShell.Security'; Install-ADDSForest -CreateDnsDelegation:0 -DatabasePath 'F:\\NTDS' -LogPath 'F:\\NTDS' -SysvolPath 'F:\\SYSVOL' -DomainName ${local.localdomain} -InstallDns:1 -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText ${local.localpassword} -Force) -Force:1"
+    }
+  PROTECTED_SETTINGS
+}
+
+resource "azurerm_virtual_machine_extension" "promotesecondaddc" {
+  name                  = "VMExtension-ADDC02"
+  virtual_machine_id    = azurerm_windows_virtual_machine.myterraformvm2.id
+  publisher             = "Microsoft.Compute"
+  type                  = "CustomScriptExtension"
+  type_handler_version  = "1.10"
+  depends_on            = [azurerm_windows_virtual_machine.myterraformvm2, azurerm_virtual_machine_data_disk_attachment.attachdatavm2, azurerm_virtual_machine_extension.promoteaddc]
+  tags                  = {
+        environment = local.grp_tags
+    }
+
+  # CustomVMExtension Documetnation: https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
+  settings = <<SETTINGS
+    {
+        "fileUris": ["${local.secondaddcscript}"]
+    }
+SETTINGS
+  protected_settings = <<PROTECTED_SETTINGS
+    {
+        "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ${local.scriptfilename} ${local.vm_username} ${local.localpassword} ${local.localdomain} ${local.subnet_storage} ${local.addcsitename}"
     }
   PROTECTED_SETTINGS
 }
