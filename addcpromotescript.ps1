@@ -47,8 +47,10 @@ Try
     Install-windowsfeature AD-domain-services -IncludeManagementTools
     Write-Log 'Install ADDS'
 
-    #Create Primary ADDC
-    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $vmuser, (ConvertTo-SecureString -String $vmpassword -AsPlainText -Force)) -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
+    $domainuser = $vmuser + "@" + $addcdomain
+
+    #Create Secondary ADDC
+    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, (ConvertTo-SecureString -String $vmpassword -AsPlainText -Force)) -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
     Write-Log 'Create Forest'
 
     New-ADReplicationSubnet -Name $subnet_addc -Site $defaultsitename
