@@ -55,7 +55,7 @@ Try
     $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, $pword
 
     #Create Secondary ADDC
-    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
+    Install-ADDSDomainController -CriticalReplicationOnly -ADPrepCredential $cred -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -SkipPreChecks -Force:$true
     Write-Log 'Create Forest'
 
     New-ADReplicationSubnet -Name $subnet_addc -Site $defaultsitename
