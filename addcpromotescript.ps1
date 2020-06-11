@@ -30,7 +30,7 @@ Write-Log($message) {
 
 Try
 {
-    Write-Log 'Sleeping....'
+    #Wait for some time to ensure PDC is up
     Start-Sleep -s 300
     Write-Log 'Waking up....'
 
@@ -59,13 +59,8 @@ Try
     $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, $pword
 
     #Create Secondary ADDC
-    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -NoRebootOnCompletion -Force:$true
+    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -Force:$true
     Write-Log 'Added Domain Controller'
-
-    New-ADReplicationSubnet -Name $subnet_addc -Site $defaultsitename
-    Write-Log 'Create Default Site Name'
-
-    Restart-Computer -Force
 }
 catch {
     Write-Error $_
