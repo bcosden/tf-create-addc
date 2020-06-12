@@ -29,52 +29,51 @@ Write-Log($message) {
 }
 
 
-    #Assign RAW disk and add drive letter
-    $addisk = Get-Disk -Number 2
-    Write-Log 'Get-Disk'
+#Assign RAW disk and add drive letter
+$addisk = Get-Disk -Number 2
+Write-Log 'Get-Disk'
 
-    Initialize-Disk -FriendlyName $addisk.FriendlyName -PartitionStyle MBR -PassThru
-    Write-Log 'Initialize Disk'
+Initialize-Disk -FriendlyName $addisk.FriendlyName -PartitionStyle MBR -PassThru
+Write-Log 'Initialize Disk'
 
-    New-Partition -DiskNumber $addisk.Number -AssignDriveLetter -UseMaximumSize
-    Write-Log 'Parition Disk'
+New-Partition -DiskNumber $addisk.Number -AssignDriveLetter -UseMaximumSize
+Write-Log 'Parition Disk'
 
-    Format-Volume -DriveLetter F -FileSystem NTFS -NewFileSystemLabel 'ADDCDATA' -Confirm:$false
-    Write-Log 'Format Disk'
+Format-Volume -DriveLetter F -FileSystem NTFS -NewFileSystemLabel 'ADDCDATA' -Confirm:$false
+Write-Log 'Format Disk'
 
-    #Install ADDS
-    Install-windowsfeature AD-domain-services -IncludeManagementTools
-    Write-Log 'Install ADDS'
+#Install ADDS
+Install-windowsfeature AD-domain-services -IncludeManagementTools
+Write-Log 'Install ADDS'
     
-    #Format the user and password into domain style and as a credential
-    $domainval = $addcdomain.Split("{.}")[0]
-    $domainval = $domainval.ToUpper() 
-    $domainuser = $domainval + "\" + $vmuser
-    $pword = ConvertTo-SecureString -String $vmpassword -AsPlainText -Force
-    $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, $pword
+#Format the user and password into domain style and as a credential
+$domainval = $addcdomain.Split("{.}")[0]
+$domainval = $domainval.ToUpper() 
+$domainuser = $domainval + "\" + $vmuser
+$pword = ConvertTo-SecureString -String $vmpassword -AsPlainText -Force
+$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, $pword
 
-    $logmsg = 'About to add domain: ' + $addcdomain + ' User: ' + $domainuser
-    Write-Log $logmsg
+$logmsg = 'About to add domain: ' + $addcdomain + ' User: ' + $domainuser
+Write-Log $logmsg
 
-    $loop = 1
-    $retrymax = 4
-    $sleeptime = 60
+$loop = 1
+$retrymax = 4
+$sleeptime = 60
     
-    Do {
+Do {
+    Try {
+        Start-Sleep -s $sleeptime
 
-        Try {
-            Start-Sleep -s $sleeptime
+        #Create Secondary ADDC
+        Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -Force:$true
+        Write-Log 'Trying to add Secondary Domain Controller'
+        $loop = $retrymax
+    } 
+    Catch {
+        Write-Log 'Error #' + $loop
+        $loop++
+    }
+} While ($loop -le $retrymax - 1)
 
-            #Create Secondary ADDC
-            Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -Force:$true
-            Write-Log 'Trying to add Secondary Domain Controller'
-            $loop = $retrymax
-        } 
-        Catch {
-            Write-Log 'Error #' + $loop
-            $loop++
-        }
-    } While ($loop -le $retrymax - 1)
-
-    New-ADReplicationSubnet -Credential $cred -Name $subnet_addc -Site $defaultsitename
-    Write-Log 'Create Default Site Name'
+New-ADReplicationSubnet -Credential $cred -Name $subnet_addc -Site $defaultsitename
+Write-Log 'Create Default Site Name'
