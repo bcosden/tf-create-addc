@@ -62,7 +62,7 @@ Try
     Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -Force:$true
     Write-Log 'Added Domain Controller'
 
-    New-ADReplicationSubnet -Name $subnet_addc -Site $defaultsitename
+    New-ADReplicationSubnet -Credential $cred -Name $subnet_addc -Site $defaultsitename
     Write-Log 'Create Default Site Name'
 }
 catch {
