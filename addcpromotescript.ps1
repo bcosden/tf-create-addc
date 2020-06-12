@@ -30,10 +30,6 @@ Write-Log($message) {
 
 Try
 {
-    #Wait for some time to ensure PDC is up
-    Start-Sleep -s 300
-    Write-Log 'Waking up....'
-
     #Assign RAW disk and add drive letter
     $addisk = Get-Disk -Number 2
     Write-Log 'Get-Disk'
@@ -58,9 +54,27 @@ Try
     $pword = ConvertTo-SecureString -String $vmpassword -AsPlainText -Force
     $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, $pword
 
-    #Create Secondary ADDC
-    Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -Force:$true
-    Write-Log 'Added Domain Controller'
+    Write-Log 'About to add domain: ' + $addcdomain + ' User: ' + $domainuser
+
+    $loop = 1
+    $retrymax = 4
+    $sleeptime = 60
+    
+    Do {
+
+        Try {
+            Start-Sleep -s $sleeptime
+
+            #Create Secondary ADDC
+            Install-ADDSDomainController -CriticalReplicationOnly -CreateDnsDelegation:$false -Credential $cred -DatabasePath "F:\NTDS" -LogPath "F:\NTDS" -SysvolPath "F:\SYSVOL" -DomainName $addcdomain -InstallDns:$true -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText $vmpassword -Force) -Force:$true
+            Write-Log 'Trying to add Secondary Domain Controller'
+            $loop = $retrymax
+        } 
+        Catch {
+            Write-Log 'Error #' + $loop
+            $loop++
+        }
+    } While ($loop -le $retrymax - 1)
 
     New-ADReplicationSubnet -Credential $cred -Name $subnet_addc -Site $defaultsitename
     Write-Log 'Create Default Site Name'
