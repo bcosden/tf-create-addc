@@ -28,8 +28,7 @@ Write-Log($message) {
     Write-Output $msg
 }
 
-Try
-{
+
     #Assign RAW disk and add drive letter
     $addisk = Get-Disk -Number 2
     Write-Log 'Get-Disk'
@@ -54,7 +53,8 @@ Try
     $pword = ConvertTo-SecureString -String $vmpassword -AsPlainText -Force
     $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainuser, $pword
 
-    Write-Log 'About to add domain: ' + $addcdomain + ' User: ' + $domainuser
+    $logmsg = 'About to add domain: ' + $addcdomain + ' User: ' + $domainuser
+    Write-Log $logmsg
 
     $loop = 1
     $retrymax = 4
@@ -78,7 +78,3 @@ Try
 
     New-ADReplicationSubnet -Credential $cred -Name $subnet_addc -Site $defaultsitename
     Write-Log 'Create Default Site Name'
-}
-catch {
-    Write-Error $_
-}
